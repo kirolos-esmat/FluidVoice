@@ -1,6 +1,15 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum MeetingTranscriptionScrollTarget: Hashable {
+    case detail(UUID)
+
+    static func selectedDetail(_ id: UUID?) -> Self? {
+        id.map(detail)
+    }
+}
+typealias FileTranscriptionScrollTarget = MeetingTranscriptionScrollTarget
+
 struct FileTranscriptionView: View {
     @ObservedObject var asrService: ASRService
     @ObservedObject private var transcriptionService: FileTranscriptionService
@@ -70,43 +79,54 @@ struct FileTranscriptionView: View {
             .padding(.bottom, 30)
 
             // Main Content Area
-            ScrollView {
-                VStack(spacing: 24) {
-                    if let activity = self.conflictingActivity {
-                        self.activityConflictCard(activity: activity)
-                    }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 24) {
+                        if let activity = self.conflictingActivity {
+                            self.activityConflictCard(activity: activity)
+                        }
 
-                    // File Selection Card
-                    self.fileSelectionCard
+                        // File Selection Card
+                        self.fileSelectionCard
 
-                    // Progress Card (only show when transcribing)
-                    if self.transcriptionService.isTranscribing {
-                        self.progressCard
-                    }
+                        // Progress Card (only show when transcribing)
+                        if self.transcriptionService.isTranscribing {
+                            self.progressCard
+                        }
 
-                    // Results Card (only show when we have results)
-                    if let result = transcriptionService.result {
-                        self.resultsCard(result: result)
-                    }
+                        // Results Card (only show when we have results)
+                        if let result = transcriptionService.result {
+                            self.resultsCard(result: result)
+                        }
 
-                    // Error Card (only show when we have an error)
-                    if let error = transcriptionService.error {
-                        self.errorCard(error: error)
-                    }
+                        // Error Card (only show when we have an error)
+                        if let error = transcriptionService.error {
+                            self.errorCard(error: error)
+                        }
 
-                    // Drop error (unsupported file type)
-                    if let message = self.dropErrorMessage {
-                        self.dropErrorCard(message: message)
-                    }
+                        // Drop error (unsupported file type)
+                        if let message = self.dropErrorMessage {
+                            self.dropErrorCard(message: message)
+                        }
 
-                    // Recent transcriptions (persisted history)
-                    if !self.fileHistoryStore.entries.isEmpty {
-                        Divider()
-                            .padding(.vertical, 8)
-                        self.recentTranscriptionsSection
+                        // Recent transcriptions (persisted history)
+                        if !self.fileHistoryStore.entries.isEmpty {
+                            Divider()
+                                .padding(.vertical, 8)
+                            self.recentTranscriptionsSection
+                        }
                     }
+                    .padding(24)
                 }
-                .padding(24)
+                // A transcript chosen by search is scrolled to its expanded detail.
+                .onAppear {
+                    MeetingTranscriptionScrollTarget.selectedDetail(self.fileHistoryStore.selectedEntryID)
+                        .map { proxy.scrollTo($0) }
+                }
+                .onChange(of: self.fileHistoryStore.selectedEntryID) { _, id in
+                    MeetingTranscriptionScrollTarget.selectedDetail(id)
+                        .map { proxy.scrollTo($0) }
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -515,6 +535,7 @@ struct FileTranscriptionView: View {
 
             if let entry = self.fileHistoryStore.selectedEntry {
                 self.historyDetailCard(entry: entry)
+                    .id(MeetingTranscriptionScrollTarget.detail(entry.id))
             }
         }
     }

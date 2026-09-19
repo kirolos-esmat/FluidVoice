@@ -4,6 +4,10 @@ import CoreMedia
 import Foundation
 import UniformTypeIdentifiers
 
+/// Backwards-compatibility alias for tests and components before file transcription was split from live meetings.
+@available(*, deprecated, renamed: "FileTranscriptionService")
+typealias MeetingTranscriptionService = FileTranscriptionService
+
 /// One speaker-attributed portion of a file transcription.
 nonisolated struct SpeakerTranscriptSegment: Identifiable, Sendable, Codable, Equatable {
     let speaker: String

@@ -1286,8 +1286,9 @@ final class MeetingSessionCoordinatorTests: XCTestCase {
             detail: "fixture stream ended"
         ))
         await harness.capture.waitForStopCall()
-        for _ in 0..<4 {
-            await Task.yield()
+        for _ in 0..<50 {
+            if harness.arbiter.releaseCallCount >= 1 { break }
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
 
         XCTAssertEqual(harness.coordinator.state, .interrupted(started.id))
