@@ -5,7 +5,7 @@
   <a href="https://github.com/sponsors/altic-dev"><img src="https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white" alt="Sponsor FluidVoice"/></a>
   <a href="https://x.com/fluidvoiceapp"><img src="https://img.shields.io/badge/X-%40fluidvoiceapp-black?logo=x&logoColor=white" alt="X @fluidvoiceapp"/></a>
   <br />
-  <a href="https://huggingface.co/nvidia/parakeet_realtime_eou_120m-v1"><img src="https://img.shields.io/badge/Models-Nemotron%20Speech%203.5%20%7C%20Parakeet%20Flash%20%7C%20Parakeet%20v3%20%26%20v2%20%7C%20Cohere%20%7C%20Apple%20Speech%20%7C%20Whisper-blue" alt="Supported Models"/></a>
+  <a href="https://huggingface.co/nvidia/parakeet_realtime_eou_120m-v1"><img src="https://img.shields.io/badge/Models-Nemotron%20Speech%203.5%20%7C%20Parakeet%20Flash%20%7C%20Parakeet%20v3%20%26%20v2%20%7C%20Cohere%20%7C%20Orukeet%20%7C%20Apple%20Speech%20%7C%20Whisper-blue" alt="Supported Models"/></a>
   <br /><br />
   <a href="https://trendshift.io/repositories/16601?utm_source=repository-badge&utm_medium=badge&utm_campaign=badge-repository-16601" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/16601" alt="altic-dev%2FFluidVoice | Trendshift" width="250" height="55"/></a>
 </p>
@@ -31,11 +31,18 @@ If FluidVoice helps you, you can support continued development and future platfo
 
 ---
 
-## What's New in 1.6.0
+## What's New
 
-- **Insanely fast Parakeet** — rebuilt Parakeet implementation with pretty much zero delay between speaking and seeing words on screen
-- **Fluid Intelligence** — fully local AI model for on-device dictation enhancement. No cloud, no API keys, no data leaving your Mac
-- **Better Theming** — adaptive light/dark theme with a compact toolbar switcher
+- **Offline Meeting & File Transcription** — record and transcribe in-person or virtual meetings with speaker diarization, chunked audio history, and a standalone file transcription studio
+- **Premium Overlay Visualizers & Companion** — sleek visualizers (Minimal, Aurora, Wave, Pulse, Notch Halo) and an interactive Companion visualizer with reactive audio glow, custom themes, and experimental live typing
+- **Draggable Recording Overlay** — freely position the bottom transcription overlay anywhere on screen; custom coordinates are remembered across monitor setups
+- **Smart Music Ducking & Volume Controls** — automatic background media ducking with a customizable volume slider or playback pausing during dictation, plus sleep prevention
+- **Official Codex & Grok OAuth** — direct in-app subscription authentication for Codex and Grok AI providers alongside API keys
+- **Orukeet Core ML Engine (Preview)** — new low-latency on-device speech engine preview with automated Hugging Face model download
+- **Instant Search with Zeppelin Engine** — embedded SQLite data layer powering instantaneous keyboard search across settings and transcript history
+- **Clipboard Only Insertion Mode** — option to copy recognized text directly to clipboard without simulated typing
+- **Insanely Fast Parakeet** — near-zero latency live streaming dictation
+- **Fluid Intelligence** — fully local AI model for on-device dictation enhancement
 - **Refreshed Onboarding** — language-first voice engine setup, real dictation tryout, and AI enhancement setup in one clean pass
 
 > [!WARNING]
@@ -95,10 +102,17 @@ https://github.com/user-attachments/assets/c57ef6d5-f0a1-4a3f-a121-637533442c24
 ## Features
 
 - **Fluid Intelligence** — on-device AI enhancement for smart formatting, context-aware capitalization, and post-processing, all running locally on your Mac with zero data leaving your machine
+- **Offline Meeting & File Transcription** — record and transcribe in-person and virtual meetings offline with speaker diarization, chunked audio storage, meeting history, and a standalone file transcription studio
+- **Premium Overlay Styles & Companion** — choose from modern visualizers (Minimal, Aurora, Wave, Pulse, Notch Halo) or an interactive Companion avatar with reactive audio envelope glow and customizable color palettes
+- **Draggable Overlay** — freely position the bottom transcription overlay anywhere on screen; custom coordinates are remembered across different display arrangements
+- **Music Ducking & Keep-Awake** — automatically ducks background media (Apple Music, Spotify) to a configurable volume level or pauses playback during dictation, with sleep prevention for long sessions
 - **Command Mode** — control your Mac by voice: launch apps, run shortcuts, trigger system actions, and automate workflows without touching the keyboard
 - **Write Mode** — write or rewrite text directly in any text field across any app. Select text and rewrite it, or dictate new content inline
 - **Live Preview** — real-time transcription overlay with notch support, so you see words appear as you speak
-- **Multiple Speech Models** — Nemotron Speech 3.5, Parakeet Flash, Parakeet TDT v3 & v2, Cohere Transcribe, Apple Speech, and Whisper. Pick the model that fits your language and latency needs
+- **Multiple Speech Models** — Nemotron Speech 3.5, Parakeet Flash, Parakeet TDT v3 & v2, Cohere Transcribe, Orukeet Core ML, Apple Speech, and Whisper. Pick the model that fits your language and latency needs
+- **Official OAuth Providers** — one-click in-app OAuth login for Codex and Grok subscriptions in addition to API key authentication
+- **Fast In-App Search (Zeppelin)** — embedded Zeppelin SQLite data layer powering instantaneous keyboard search across settings, history, and actions
+- **Flexible Text Insertion** — choose between accessibility direct typing, reliable paste, or Copy to Clipboard Only mode
 - **AI Enhancement** — optional post-processing via OpenAI, Groq, custom providers, or local Fluid Intelligence for cleaner, more accurate transcripts
 - **Audio History** — optional local recording history with budget controls and ZIP export, so you can review past dictations without cloud storage
 - **Today-Usage Stats** — daily usage tracking at a glance with a stats header card and toolbar pill
@@ -111,7 +125,6 @@ https://github.com/user-attachments/assets/c57ef6d5-f0a1-4a3f-a121-637533442c24
 - **Notch-Aware Overlay** — transcription overlay that fits cleanly around the MacBook notch, or use a standard overlay if your Mac doesn't have one
 - **Local-First** — your voice and text never leave your machine unless you opt in to a cloud AI provider
 - **Fastest Parakeet on Mac** — one of the fastest native implementations of Parakeet on macOS, with near-instant transcription and minimal latency
-- **Configurable Overlay** — choose from pill-shaped to large overlay sizes to show live preview, or keep it minimal. Everything is optional
 - **Everything is Optional** — AI enhancement, Fluid Intelligence, audio history, detailed analytics, and beta builds are optional. The core dictation experience works out of the box with zero configuration beyond permissions and a hotkey
 
 ---
@@ -126,6 +139,7 @@ https://github.com/user-attachments/assets/c57ef6d5-f0a1-4a3f-a121-637533442c24
 | Parakeet TDT v3 | Fast default multilingual dictation | [25 languages](#parakeet-tdt-v3-languages) | ~500 MB | Apple Silicon |
 | Parakeet TDT v2 | Fastest English-only dictation | [English](#parakeet-tdt-v2-languages) | ~500 MB | Apple Silicon |
 | Cohere Transcribe | High-accuracy multilingual dictation | [14 languages](#cohere-transcribe-languages) | ~1.4 GB | Apple Silicon |
+| Orukeet Core ML (Preview) | Fast on-device Core ML transcription | English | ~320 MB | Apple Silicon |
 | Apple Speech | Zero-download native macOS speech | [System languages](#apple-speech-languages) | Built-in | Apple Silicon + Intel |
 | Whisper Tiny / Base / Small / Medium / Large | Broad compatibility, including Intel Macs | [99 languages](#whisper-language-support) | ~75 MB to ~2.9 GB | Apple Silicon + Intel |
 
