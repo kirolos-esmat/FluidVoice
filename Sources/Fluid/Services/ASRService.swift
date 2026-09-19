@@ -1582,6 +1582,9 @@ final class ASRService: ObservableObject {
     private var isEngineTapInstalled = false
     private var isRecoveringAudioRoute = false
 
+    /// What `MediaPlaybackService` did at the start of this session (paused,
+    /// ducked, or nothing). Used to undo that action on stop.
+    private var mediaSessionAction: MediaSessionAction = .none
     private var audioLevelSubject = PassthroughSubject<CGFloat, Never>()
     var audioLevelPublisher: AnyPublisher<CGFloat, Never> {
         self.audioLevelSubject.eraseToAnyPublisher()
@@ -2174,30 +2177,38 @@ final class ASRService: ObservableObject {
     @discardableResult
     func start(
         forDictionaryTraining: Bool = false,
-        onCaptureStarted: (@MainActor () -> Void)? = nil
+        onCaptureStarted: (@MainActor () -> Void)? = nil,
+        preAppliedMediaAction: MediaSessionAction = .none
     ) async -> AudioCaptureStartOutcome {
         DebugLogger.shared.info("🎤 START() called - beginning recording session", source: "ASRService")
 
         guard self.micStatus == .authorized else {
             DebugLogger.shared.error("❌ START() blocked - mic not authorized", source: "ASRService")
+            await MediaPlaybackService.shared.restore(from: preAppliedMediaAction)
             return .failed
         }
         guard !self.recordingBufferHandoffGate.isRecovering else {
             self.presentStreamingRecoveryError()
+            await MediaPlaybackService.shared.restore(from: preAppliedMediaAction)
             return .failed
         }
         guard self.isRunning == false, self.isStarting == false else {
             DebugLogger.shared.warning("⚠️ START() blocked - already running (started: \(self.isRunning), starting: \(self.isStarting))", source: "ASRService")
+            await MediaPlaybackService.shared.restore(from: preAppliedMediaAction)
             return .alreadyActive
         }
         guard self.isTerminating == false else {
             DebugLogger.shared.warning("START() blocked - app is terminating", source: "ASRService")
+            await MediaPlaybackService.shared.restore(from: preAppliedMediaAction)
             return .failed
         }
         self.audioCaptureStartGeneration &+= 1
         let startGeneration = self.audioCaptureStartGeneration
         self.isStarting = true
         defer { self.finishAudioCaptureStart() }
+
+        // Adopt any media action the caller already took, otherwise reset.
+        self.mediaSessionAction = preAppliedMediaAction
 
         // A prior stop may already have disabled capture while its final live-preview
         // operation still owns the shared PCM buffer. Reserve this start immediately,
@@ -2486,6 +2497,17 @@ final class ASRService: ObservableObject {
                 )
                 startAttempt += 1
             }
+
+            if case .ducked = self.mediaSessionAction {
+                // Duck was pre-fired by the caller — nothing more to do.
+            } else if SettingsStore.shared.mediaBehaviorDuringTranscription == .duck,
+                      let previousVolume = MediaPlaybackService.shared.duckSystemVolume() {
+                self.mediaSessionAction = .ducked(previousVolume: previousVolume)
+            }
+
+            if SettingsStore.shared.preventSleepDuringTranscription {
+                SleepPreventionService.shared.preventSleep()
+            }
             self.isDictionaryTrainingCaptureActive = forDictionaryTraining
             self.isRunning = true
             DebugLogger.shared.info(
@@ -2516,10 +2538,16 @@ final class ASRService: ObservableObject {
             } else {
                 DebugLogger.shared.debug("⏸️ Skipping streaming - model '\(model.displayName)' does not support real-time chunk processing", source: "ASRService")
             }
+            if SettingsStore.shared.preventSleepDuringTranscription {
+                SleepPreventionService.shared.preventSleep()
+            }
             DebugLogger.shared.info("✅ START() completed successfully", source: "ASRService")
             return .started
         } catch {
             self.mediaPlaybackService.sessionFinished(sessionID: captureSessionID)
+            await MediaPlaybackService.shared.restore(from: self.mediaSessionAction)
+            self.mediaSessionAction = .none
+            SleepPreventionService.shared.allowSleep()
             await self.audioCaptureReadinessGate.cancel(
                 sessionID: captureSessionID,
                 attemptID: readinessAttemptID
@@ -2869,6 +2897,15 @@ final class ASRService: ObservableObject {
             return ""
         }
 
+        // Capture the media action so we can undo it at every exit path.
+        let pendingMediaRestore = self.mediaSessionAction
+        self.mediaSessionAction = .none // Reset for next session
+
+        // Always release the sleep assertion at the start of stop — recording
+        // is over from the user's point of view, even if transcription is
+        // still running.
+        SleepPreventionService.shared.allowSleep()
+
         DebugLogger.shared.debug("📍 Preparing final transcription", source: "ASRService")
 
         // Freeze an exact acquisition boundary before stopping hardware. The
@@ -2913,6 +2950,8 @@ final class ASRService: ObservableObject {
         onCaptureStopped?()
         self.benchmarkLog("capture_stopped_callback_end")
         self.benchmarkLog("capture_stopped_callback_return")
+
+        await MediaPlaybackService.shared.restore(from: pendingMediaRestore)
 
         let directCaptureSnapshot = self.directAudioLifecycleController.snapshot
         self.benchmarkLog(
@@ -3402,6 +3441,13 @@ final class ASRService: ObservableObject {
             return
         }
 
+        // Capture the media action so we can undo it after teardown.
+        let pendingMediaRestore = self.mediaSessionAction
+        self.mediaSessionAction = .none // Reset for next session
+
+        // Release the sleep assertion as soon as recording stops.
+        SleepPreventionService.shared.allowSleep()
+
         DebugLogger.shared.info("🛑 Stopping recording - releasing audio devices", source: "ASRService")
 
         // CRITICAL: Set isRunning to false FIRST to signal any in-flight chunks to abort early
@@ -3439,6 +3485,7 @@ final class ASRService: ObservableObject {
         self.isProcessingChunk = false
         self.skipNextChunk = false
         self.refreshWordBoostStatus()
+        await MediaPlaybackService.shared.restore(from: pendingMediaRestore)
     }
 
     private func configureSession() throws {

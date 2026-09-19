@@ -4705,6 +4705,15 @@ extension ContentView {
             self.settings.playgroundUsed = false
             self.playgroundUsed = false
         }
+
+        let willStart = !self.asr.isRunningOrStarting
+        var preAppliedMediaAction: MediaSessionAction = .none
+        if willStart, SettingsStore.shared.mediaBehaviorDuringTranscription == .duck {
+            if let prev = MediaPlaybackService.shared.duckSystemVolume() {
+                preAppliedMediaAction = .ducked(previousVolume: prev)
+            }
+        }
+
         self.applyDictationShortcutSelectionContext(for: slot)
         self.setActiveRecordingMode(mode)
         self.rewriteModeService.clearState()
@@ -4735,7 +4744,7 @@ extension ContentView {
                 self.captureRecordingContext()
                 self.prewarmPrivateAIDictationIfNeeded(for: slot)
                 self.appBench("overlay_phase phase=recording trigger=first_pcm")
-            })
+            }, preAppliedMediaAction: preAppliedMediaAction)
             if startOutcome == .failed {
                 self.menuBarManager.hideRecordingOverlayImmediately(reason: "asr_start_failed")
                 if isOnboardingTryout {
