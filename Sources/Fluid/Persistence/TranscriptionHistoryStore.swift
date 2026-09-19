@@ -211,7 +211,7 @@ final class TranscriptionHistoryStore: ObservableObject {
 
     private let writer: TranscriptionHistoryWriter
     private var loadTask: Task<Void, Never>?
-    private var hasLoaded = false
+    @Published private var hasLoaded = false
     private var pendingUpserts: [UUID: TranscriptionHistoryEntry] = [:]
     private var pendingDeletes: Set<UUID> = []
     private var pendingReplacement = false
@@ -219,6 +219,15 @@ final class TranscriptionHistoryStore: ObservableObject {
     @Published private(set) var persistenceError: String?
 
     @Published private(set) var entries: [TranscriptionHistoryEntry] = []
+
+    /// Replays the current snapshot only after loading and merging pending edits succeed.
+    /// An empty loaded history is authoritative; an unloaded or failed one is not.
+    var loadedEntriesPublisher: AnyPublisher<[TranscriptionHistoryEntry], Never> {
+        self.$entries.combineLatest(self.$hasLoaded)
+            .compactMap { entries, hasLoaded in hasLoaded ? entries : nil }
+            .eraseToAnyPublisher()
+    }
+
     @Published var selectedEntryID: UUID?
     /// Last completed snapshot while a coalesced background refresh is pending.
     /// Rendering must never scan history or schedule work.
@@ -232,15 +241,18 @@ final class TranscriptionHistoryStore: ObservableObject {
     private var calendarObservers: [NSObjectProtocol] = []
     private let summaryNow: () -> Date
     private let summaryCalendar: () -> Calendar
+    private let deleteAllAudioFiles: () -> Void
 
     init(
         writer: TranscriptionHistoryWriter = TranscriptionHistoryWriter(),
         summaryNow: @escaping () -> Date = Date.init,
-        summaryCalendar: @escaping () -> Calendar = { Calendar.current }
+        summaryCalendar: @escaping () -> Calendar = { Calendar.current },
+        deleteAllAudioFiles: @escaping () -> Void = { DictationAudioHistoryStore.shared.deleteAllAudioFiles() }
     ) {
         self.writer = writer
         self.summaryNow = summaryNow
         self.summaryCalendar = summaryCalendar
+        self.deleteAllAudioFiles = deleteAllAudioFiles
         self.observeSummaryCalendarChanges()
         self.loadEntries()
     }
@@ -355,7 +367,7 @@ final class TranscriptionHistoryStore: ObservableObject {
     func clearAllHistory() {
         self.audioSaveGeneration &+= 1
         self.invalidateAutomaticAudioBudgetMeasurement()
-        DictationAudioHistoryStore.shared.deleteAllAudioFiles()
+        self.deleteAllAudioFiles()
         self.entries.removeAll()
         self.refreshTodaySummary()
         self.selectedEntryID = nil
@@ -431,7 +443,7 @@ final class TranscriptionHistoryStore: ObservableObject {
         self.audioSaveGeneration &+= 1
         self.invalidateAutomaticAudioBudgetMeasurement()
         let removedCount = self.entries.filter { $0.audio != nil }.count
-        DictationAudioHistoryStore.shared.deleteAllAudioFiles()
+        self.deleteAllAudioFiles()
         let changed = self.entries.filter { $0.audio != nil }.map { $0.replacingAudio(nil) }
         self.entries = self.entries.map { $0.replacingAudio(nil) }
         self.persist(upserts: changed)
