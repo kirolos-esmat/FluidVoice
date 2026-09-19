@@ -1923,6 +1923,23 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    var meetingRecordingDefaults: MeetingRecordingDefaults {
+        get {
+            guard let data = self.defaults.data(forKey: Keys.meetingRecordingDefaults),
+                  let saved = try? JSONDecoder().decode(MeetingRecordingDefaults.self, from: data)
+            else {
+                return .unconfigured
+            }
+            return saved
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else {
+                return
+            }
+            self.defaults.set(data, forKey: Keys.meetingRecordingDefaults)
+        }
+    }
+
     var preferredOutputDeviceUID: String? {
         get { self.defaults.string(forKey: Keys.preferredOutputDeviceUID) }
         set { self.defaults.set(newValue, forKey: Keys.preferredOutputDeviceUID) }
@@ -5658,6 +5675,7 @@ private extension SettingsStore {
         static let microphonePriority = "MicrophonePriority"
         static let suppressedMicrophoneUIDs = "SuppressedMicrophoneUIDs"
         static let preferredOutputDeviceUID = "PreferredOutputDeviceUID"
+        static let meetingRecordingDefaults = "MeetingRecordingDefaults"
         static let microphoneSelectionMode = "MicrophoneSelectionMode"
         // Keep the original persisted key so existing installs migrate in place.
         static let microphoneSelectionMigrationVersion = "AppOnlyMicrophoneSelectionMigrationVersion"
