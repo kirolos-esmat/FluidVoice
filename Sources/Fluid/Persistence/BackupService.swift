@@ -114,14 +114,14 @@ struct SettingsBackupPayload: Codable, Equatable {
     let continuousDictationSpacingEnabled: Bool?
     let contextAwareCapitalizationEnabled: Bool?
     let pauseMediaDuringTranscription: Bool
-    let automaticDictionaryLearningEnabled: Bool?
-    let automaticDictionarySuggestionFrequency: SettingsStore.AutomaticDictionarySuggestionFrequency?
-    let pronunciationMatchingEnabled: Bool?
     /// Lossless capture of the unified media-behaviour enum (none / pause /
     /// duck). Optional so that backups created by older builds (which only
     /// wrote the legacy bool) still decode cleanly. New builds prefer this
     /// field on restore and fall back to the bool only when it's nil.
     let mediaBehaviorDuringTranscription: SettingsStore.MediaBehaviorDuringTranscription?
+    let automaticDictionaryLearningEnabled: Bool?
+    let automaticDictionarySuggestionFrequency: SettingsStore.AutomaticDictionarySuggestionFrequency?
+    let pronunciationMatchingEnabled: Bool?
     let vocabularyBoostingEnabled: Bool
     let customDictionaryEntries: [SettingsStore.CustomDictionaryEntry]
     let selectedDictationPromptID: String?
