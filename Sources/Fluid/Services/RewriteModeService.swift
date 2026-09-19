@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import CryptoKit
 import Foundation
 
 @MainActor
@@ -330,6 +329,7 @@ final class RewriteModeService: ObservableObject {
 
         // Build LLMClient configuration
         var config = LLMClient.Config(
+            providerID: providerID,
             messages: apiMessages,
             model: model,
             baseURL: baseURL,
@@ -426,13 +426,12 @@ final class RewriteModeService: ObservableObject {
         return ""
     }
 
-    private func providerFingerprint(baseURL: String, apiKey: String) -> String? {
-        let trimmedBase = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedBase.isEmpty else { return nil }
-        let input = "\(trimmedBase)|\(trimmedKey)"
-        let digest = SHA256.hash(data: Data(input.utf8))
-        return digest.map { String(format: "%02x", $0) }.joined()
+    private func providerFingerprint(providerID: String, baseURL: String, apiKey: String) -> String? {
+        OfficialProviderAuth.configurationFingerprint(
+            providerID: providerID,
+            baseURL: baseURL,
+            apiKey: apiKey
+        )
     }
 
     private func isProviderVerified(_ providerID: String, settings: SettingsStore) -> Bool {
@@ -441,7 +440,7 @@ final class RewriteModeService: ObservableObject {
         guard let stored = settings.verifiedProviderFingerprints[key] else { return false }
         let baseURL = self.providerBaseURL(for: providerID, settings: settings)
         let apiKey = settings.getAPIKey(for: providerID) ?? ""
-        let current = self.providerFingerprint(baseURL: baseURL, apiKey: apiKey)
+        let current = self.providerFingerprint(providerID: providerID, baseURL: baseURL, apiKey: apiKey)
         return current == stored
     }
 
