@@ -5806,6 +5806,7 @@ extension SettingsStore {
             switch self {
             case .standard:
                 return "Fastest path. Inserts text without changing the clipboard, with paste fallback if direct insertion is unavailable."
+            case .reliablePaste:
                 return "Compatibility path. Uses a temporary clipboard paste and restores your previous clipboard after insertion."
             case .clipboardOnly:
                 return "Copies transcribed text to the clipboard without inserting it. Useful for remote desktop workflows or when you prefer to paste manually."
