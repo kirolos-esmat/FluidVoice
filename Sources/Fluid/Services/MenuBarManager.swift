@@ -129,16 +129,16 @@ final class MenuBarManager: NSObject, ObservableObject, NSMenuDelegate {
                 self.openMainWindow()
             }
             .store(in: &self.cancellables)
-        if SettingsStore.shared.overlayPosition == .bottom {
+        if SettingsStore.shared.overlayPosition.usesFloatingOverlay {
             DispatchQueue.main.async {
-                guard SettingsStore.shared.overlayPosition == .bottom else { return }
+                guard SettingsStore.shared.overlayPosition.usesFloatingOverlay else { return }
                 BottomOverlayWindowController.shared.prepare()
             }
         }
         NotificationCenter.default.publisher(for: NSNotification.Name("OverlayPositionChanged"))
             .receive(on: DispatchQueue.main)
             .sink { _ in
-                guard SettingsStore.shared.overlayPosition == .bottom else { return }
+                guard SettingsStore.shared.overlayPosition.usesFloatingOverlay else { return }
                 BottomOverlayWindowController.shared.prepare()
             }
             .store(in: &self.cancellables)
@@ -663,6 +663,13 @@ final class MenuBarManager: NSObject, ObservableObject, NSMenuDelegate {
     func finishProcessingAndHideOverlay() async {
         let startedAt = ProcessInfo.processInfo.systemUptime
         self.prepareForProcessingCompletion()
+
+        // This is the success-only exit: the AI failure path keeps the overlay
+        // visible for a retry instead of calling this. That makes it the
+        // reliable completion signal the overlay flash is driven from.
+        if NotchOverlayManager.shared.isBottomOverlayVisible {
+            NotchContentState.shared.markDeliveryCompleted()
+        }
 
         NotchOverlayManager.shared.setProcessing(false)
         self.overlayBench("finish_hide_request mode=awaited")
