@@ -119,6 +119,8 @@ struct SettingsBackupPayload: Codable, Equatable {
     /// wrote the legacy bool) still decode cleanly. New builds prefer this
     /// field on restore and fall back to the bool only when it's nil.
     let mediaBehaviorDuringTranscription: SettingsStore.MediaBehaviorDuringTranscription?
+    let duckMediaInsteadOfPausing: Bool?
+    let duckMediaVolumeLevel: Double?
     let automaticDictionaryLearningEnabled: Bool?
     let automaticDictionarySuggestionFrequency: SettingsStore.AutomaticDictionarySuggestionFrequency?
     let pronunciationMatchingEnabled: Bool?

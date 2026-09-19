@@ -995,7 +995,7 @@ struct SettingsView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text("Music During Transcription")
                                                 .font(.body)
-                                            Text("Leave playing, pause it, or lower the system volume to 10% while you dictate (restored when you stop).")
+                                            Text("Leave playing, pause it, or lower the system volume while you dictate (restored when you stop).")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -1012,6 +1012,34 @@ struct SettingsView: View {
                                         }
                                         .frame(width: 160)
                                         .labelsHidden()
+                                    }
+
+                                    if self.settings.mediaBehaviorDuringTranscription == .duck {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text("Volume While Dictating")
+                                                    .font(.body)
+                                                Text("Target system volume while dictation is active.")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+
+                                            Spacer()
+
+                                            HStack(spacing: 6) {
+                                                Slider(value: self.$settings.duckMediaVolumeLevel, in: 0.05...1.0, step: 0.05)
+                                                    .frame(width: 110)
+                                                    .controlSize(.small)
+
+                                                Text("\(Int((self.settings.duckMediaVolumeLevel * 100).rounded()))%")
+                                                    .font(.caption.monospaced())
+                                                    .foregroundStyle(.secondary)
+                                                    .frame(width: 44, alignment: .trailing)
+                                            }
+                                            .frame(width: 160, alignment: .trailing)
+                                        }
+                                        .padding(.leading, 16)
+                                        .padding(.top, 2)
                                     }
                                     Divider().opacity(0.2)
 

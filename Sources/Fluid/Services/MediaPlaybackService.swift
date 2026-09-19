@@ -17,10 +17,8 @@ enum MediaSessionAction: Equatable {
     case ducked(previousVolume: SystemVolumeSnapshot)
 }
 
-/// Volume the system output is dropped to while ducking. 10% of full scale —
-/// quiet enough that the music doesn't compete with dictation, loud enough
-/// that the user knows something's still playing.
-private let kDuckTargetVolume: Float = 0.10
+/// Default volume the system output is dropped to while ducking if not configured in settings.
+private let kDefaultDuckTargetVolume: Float = 0.15
 
 /// Length of the fade ramp in seconds. Short enough that the duck has
 /// fully landed before the user starts dictating, long enough to read as a
@@ -318,7 +316,8 @@ final class MediaPlaybackService {
     /// volume is already at or below the duck target — in either case we
     /// don't touch the volume at all (and the matching restore becomes a
     /// no-op).
-    func duckSystemVolume() -> SystemVolumeSnapshot? {
+    func duckSystemVolume(targetVolume: Float? = nil) -> SystemVolumeSnapshot? {
+        let duckTarget = targetVolume ?? Float(SettingsStore.shared.duckMediaVolumeLevel)
         guard let snapshot = SystemVolumeController.currentSnapshot() else {
             DebugLogger.shared.debug(
                 "MediaPlaybackService: Couldn't read system volume, skipping duck",
@@ -327,9 +326,9 @@ final class MediaPlaybackService {
             return nil
         }
         let previousScalar = snapshot.averageScalar
-        guard previousScalar > kDuckTargetVolume else {
+        guard previousScalar > duckTarget else {
             DebugLogger.shared.debug(
-                "MediaPlaybackService: Volume \(String(format: "%.2f", previousScalar)) already ≤ duck target, skipping",
+                "MediaPlaybackService: Volume \(String(format: "%.2f", previousScalar)) already ≤ duck target \(String(format: "%.2f", duckTarget)), skipping",
                 source: "MediaPlaybackService"
             )
             return nil
@@ -341,15 +340,15 @@ final class MediaPlaybackService {
         // write (sub-millisecond), bypassing both Task.detached scheduling
         // latency and the fade ramp's first few steps where the per-step
         // volume change is too small to perceive. The detached fade then
-        // smoothly lands the rest of the way to kDuckTargetVolume.
-        let immediateDrop = (previousScalar + kDuckTargetVolume) / 2
+        // smoothly lands the rest of the way to duckTarget.
+        let immediateDrop = (previousScalar + duckTarget) / 2
         SystemVolumeController.setVolume(immediateDrop)
 
         DebugLogger.shared.info(
-            "🔉 Snapped \(String(format: "%.2f", previousScalar)) → \(String(format: "%.2f", immediateDrop)), fading to \(String(format: "%.2f", kDuckTargetVolume)) over \(kFadeDuration)s",
+            "🔉 Snapped \(String(format: "%.2f", previousScalar)) → \(String(format: "%.2f", immediateDrop)), fading to \(String(format: "%.2f", duckTarget)) over \(kFadeDuration)s",
             source: "MediaPlaybackService"
         )
-        self.startFade(from: immediateDrop, to: kDuckTargetVolume, restoreSnapshot: nil)
+        self.startFade(from: immediateDrop, to: duckTarget, restoreSnapshot: nil)
         return snapshot
     }
 
@@ -362,7 +361,8 @@ final class MediaPlaybackService {
     /// flattened to the fade scalar.
     func restoreSystemVolume(previous: SystemVolumeSnapshot?) {
         guard let previous else { return }
-        let start = SystemVolumeController.currentVolume() ?? kDuckTargetVolume
+        let duckTarget = Float(SettingsStore.shared.duckMediaVolumeLevel)
+        let start = SystemVolumeController.currentVolume() ?? duckTarget
         let target = previous.averageScalar
         DebugLogger.shared.info(
             "🔊 Fading system volume \(String(format: "%.2f", start)) → \(String(format: "%.2f", target)) over \(kFadeDuration)s",

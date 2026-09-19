@@ -3420,6 +3420,8 @@ final class SettingsStore: ObservableObject {
             contextAwareCapitalizationEnabled: self.contextAwareCapitalizationEnabled,
             pauseMediaDuringTranscription: self.pauseMediaDuringTranscription,
             mediaBehaviorDuringTranscription: self.mediaBehaviorDuringTranscription,
+            duckMediaInsteadOfPausing: self.duckMediaInsteadOfPausing,
+            duckMediaVolumeLevel: self.duckMediaVolumeLevel,
             automaticDictionaryLearningEnabled: self.automaticDictionaryLearningEnabled,
             automaticDictionarySuggestionFrequency: self.automaticDictionarySuggestionFrequency,
             pronunciationMatchingEnabled: self.pronunciationMatchingEnabled,
@@ -3620,6 +3622,10 @@ final class SettingsStore: ObservableObject {
             self.mediaBehaviorDuringTranscription = mode
         } else {
             self.mediaBehaviorDuringTranscription = payload.pauseMediaDuringTranscription ? .pause : .none
+        }
+        self.duckMediaInsteadOfPausing = payload.duckMediaInsteadOfPausing ?? false
+        if let duckLevel = payload.duckMediaVolumeLevel {
+            self.duckMediaVolumeLevel = duckLevel
         }
         if let automaticDictionaryLearningEnabled = payload.automaticDictionaryLearningEnabled {
             self.automaticDictionaryLearningEnabled = automaticDictionaryLearningEnabled
@@ -4709,6 +4715,38 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// When enabled (and `pauseMediaDuringTranscription` is on), lowers the system
+    /// output volume during transcription instead of fully pausing playback.
+    /// Kept for backward compatibility with older backups/presets.
+    var duckMediaInsteadOfPausing: Bool {
+        get {
+            if let val = self.defaults.object(forKey: Keys.duckMediaInsteadOfPausing) as? Bool {
+                return val
+            }
+            return self.mediaBehaviorDuringTranscription == .duck
+        }
+        set {
+            objectWillChange.send()
+            self.defaults.set(newValue, forKey: Keys.duckMediaInsteadOfPausing)
+            if newValue {
+                self.mediaBehaviorDuringTranscription = .duck
+            }
+        }
+    }
+
+    /// Target output volume while ducking, expressed as a fraction (0.05–1.0) of
+    /// the volume at the moment transcription starts. Defaults to 0.15 (15%).
+    var duckMediaVolumeLevel: Double {
+        get {
+            let stored = self.defaults.object(forKey: Keys.duckMediaVolumeLevel) as? Double ?? 0.15
+            return min(1.0, max(0.05, stored))
+        }
+        set {
+            objectWillChange.send()
+            self.defaults.set(min(1.0, max(0.05, newValue)), forKey: Keys.duckMediaVolumeLevel)
+        }
+    }
+
     // MARK: - Custom Dictionary
 
     /// A custom dictionary entry that maps multiple misheard/alternate spellings to a correct replacement.
@@ -5751,6 +5789,8 @@ private extension SettingsStore {
         /// Media Playback Control
         static let pauseMediaDuringTranscription = "PauseMediaDuringTranscription"
         static let mediaBehaviorDuringTranscription = "MediaBehaviorDuringTranscription"
+        static let duckMediaInsteadOfPausing = "DuckMediaInsteadOfPausing"
+        static let duckMediaVolumeLevel = "DuckMediaVolumeLevel"
         static let preventSleepDuringTranscription = "PreventSleepDuringTranscription"
 
         /// Custom Dictation Prompt
