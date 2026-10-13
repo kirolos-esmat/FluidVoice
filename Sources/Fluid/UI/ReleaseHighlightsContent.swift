@@ -22,7 +22,7 @@ struct ReleaseHighlightsContent {
 
     static func current(hasPrivateAI: Bool) -> Self {
         Self(
-            release: "1.6.10",
+            release: "1.6.11",
             title: "Say hello to what’s new.",
             subtitle: "Three new ways to make FluidVoice yours.",
             features: [
